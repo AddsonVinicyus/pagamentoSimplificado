@@ -24,11 +24,13 @@ public class TransactionService {
     private TransactionRepository transactionRepository;
     @Autowired
     private RestTemplate restTemplate;
+    @Autowired
+    private NotificationService notificationService;
 
-    @Value("authorizationURL")
+    @Value("${authorizationURL}")
     private String authorizationURL;
 
-    public void createTransaction(TransactionDTO transaction){
+    public Transaction createTransaction(TransactionDTO transaction){
         User payer = this.userService.findUserById(transaction.payerId());
         User payee = this.userService.findUserById(transaction.payeeId());
 
@@ -53,12 +55,19 @@ public class TransactionService {
         this.userService.saveUser(payer);
         this.userService.saveUser(payee);
 
+        this.notificationService.sendNotification(payer, "Transação enviada com sucesso");
+        this.notificationService.sendNotification(payee, "Transação recebida com sucesso");
+
+        return newTransaction;
+
     }
 
     public boolean authorizeTransaction(User payer, BigDecimal value){
         ResponseEntity<Map> authorizationResponse = restTemplate.getForEntity(authorizationURL, Map.class);
-        return authorizationResponse.getStatusCode() == HttpStatus.OK && authorizationResponse.getBody().get("message") == "Autorizado";
-
+        if(authorizationResponse.getStatusCode() == HttpStatus.OK){
+            String message = (String) authorizationResponse.getBody().get("message");
+            return "Autorizado".equalsIgnoreCase(message);
+        } else return false;
     }
 
 }
