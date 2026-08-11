@@ -2,8 +2,6 @@ package com.adx.pagamentoSimplificado.infra;
 
 import com.adx.pagamentoSimplificado.dto.ExceptionDTO;
 import com.adx.pagamentoSimplificado.infra.exceptions.*;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,6 +42,13 @@ public class RestExceptionHandler {
     private ResponseEntity<ExceptionDTO> transactionNotAuthorizedHandler(TransactionNotAuthorizedException exception){
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 new ExceptionDTO(HttpStatus.BAD_REQUEST, exception.getMessage())
+        );
+    }
+
+    @ExceptionHandler(NotificationException.class)
+    private ResponseEntity<ExceptionDTO> notificationErrorHandler(NotificationException exception){
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                new ExceptionDTO(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage())
         );
     }
 
