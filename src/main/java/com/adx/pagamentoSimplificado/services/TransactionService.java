@@ -3,8 +3,10 @@ package com.adx.pagamentoSimplificado.services;
 import com.adx.pagamentoSimplificado.domain.transaction.Transaction;
 import com.adx.pagamentoSimplificado.domain.user.User;
 import com.adx.pagamentoSimplificado.dto.TransactionDTO;
+import com.adx.pagamentoSimplificado.infra.exceptions.NotificationException;
 import com.adx.pagamentoSimplificado.infra.exceptions.TransactionNotAuthorizedException;
 import com.adx.pagamentoSimplificado.repositories.TransactionRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -39,20 +41,32 @@ public class TransactionService {
 
         verifyAuthorization(payer, transaction.value());
 
+        Transaction newTransaction = executePayment(payer, payee, transaction.value());
+
+        try{
+            sendNotification(payer, payee);
+        } catch (Exception e){
+            throw new NotificationException("Erro ao enviar notificação");
+        }
+
+        return newTransaction;
+
+    }
+
+    @Transactional
+    public Transaction executePayment(User payer, User payee, BigDecimal value){
         Transaction newTransaction = new Transaction();
-        newTransaction.setAmount(transaction.value());
+        newTransaction.setAmount(value);
         newTransaction.setPayer(payer);
         newTransaction.setPayee(payee);
         newTransaction.setTimestamp(LocalDateTime.now());
 
-        payer.setBalance(payer.getBalance().subtract(transaction.value()));
-        payee.setBalance(payee.getBalance().add(transaction.value()));
+        payer.setBalance(payer.getBalance().subtract(value));
+        payee.setBalance(payee.getBalance().add(value));
 
         this.transactionRepository.save(newTransaction);
         this.userService.saveUser(payer);
         this.userService.saveUser(payee);
-
-        sendNotification(payer, payee);
 
         return newTransaction;
 
