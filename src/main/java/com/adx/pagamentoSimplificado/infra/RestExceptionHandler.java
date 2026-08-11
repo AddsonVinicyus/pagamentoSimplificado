@@ -1,10 +1,7 @@
 package com.adx.pagamentoSimplificado.infra;
 
 import com.adx.pagamentoSimplificado.dto.ExceptionDTO;
-import com.adx.pagamentoSimplificado.infra.exceptions.InsufficientAmountException;
-import com.adx.pagamentoSimplificado.infra.exceptions.InvalidTransactionException;
-import com.adx.pagamentoSimplificado.infra.exceptions.UserAlreadyExistsException;
-import com.adx.pagamentoSimplificado.infra.exceptions.UserNotFoundException;
+import com.adx.pagamentoSimplificado.infra.exceptions.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -40,6 +37,13 @@ public class RestExceptionHandler {
     private ResponseEntity<ExceptionDTO> userNotFoundHandler(UserNotFoundException exception){
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new ExceptionDTO(HttpStatus.NOT_FOUND, exception.getMessage())
+        );
+    }
+
+    @ExceptionHandler(TransactionNotAuthorizedException.class)
+    private ResponseEntity<ExceptionDTO> transactionNotAuthorizedHandler(TransactionNotAuthorizedException exception){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ExceptionDTO(HttpStatus.BAD_REQUEST, exception.getMessage())
         );
     }
 
