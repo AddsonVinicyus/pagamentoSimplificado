@@ -26,12 +26,9 @@ public class TransactionService {
     @Autowired
     private TransactionRepository transactionRepository;
     @Autowired
-    private RestTemplate restTemplate;
+    private AuthorizationService authorizationService;
     @Autowired
     private NotificationService notificationService;
-
-    @Value("${authorizationURL}")
-    private String authorizationURL;
 
     public Transaction createTransaction(TransactionDTO transaction){
         User payer = this.userService.findUserById(transaction.payerId());
@@ -39,7 +36,7 @@ public class TransactionService {
 
         userService.validateTransaction(payer, transaction.value());
 
-        verifyAuthorization(payer, transaction.value());
+        this.authorizationService.verifyAuthorization(payer, transaction.value());
 
         Transaction newTransaction = executePayment(payer, payee, transaction.value());
 
@@ -72,22 +69,9 @@ public class TransactionService {
 
     }
 
-    public void verifyAuthorization(User payer, BigDecimal value){
-        if(!(authorizeTransaction(payer, value)))
-            throw new TransactionNotAuthorizedException("A transação não foi autorizada.");
-    }
-
     public void sendNotification(User payer, User payee){
         this.notificationService.sendNotification(payer, "Transação enviada com sucesso");
         this.notificationService.sendNotification(payee, "Transação recebida com sucesso");
-    }
-
-    public boolean authorizeTransaction(User payer, BigDecimal value){
-        ResponseEntity<Map> authorizationResponse = restTemplate.getForEntity(authorizationURL, Map.class);
-        if(authorizationResponse.getStatusCode() == HttpStatus.OK){
-            String message = (String) authorizationResponse.getBody().get("message");
-            return "Autorizado".equalsIgnoreCase(message);
-        } else return false;
     }
 
 }
