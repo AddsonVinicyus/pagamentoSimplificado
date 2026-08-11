@@ -3,6 +3,7 @@ package com.adx.pagamentoSimplificado.services;
 import com.adx.pagamentoSimplificado.domain.transaction.Transaction;
 import com.adx.pagamentoSimplificado.domain.user.User;
 import com.adx.pagamentoSimplificado.dto.TransactionDTO;
+import com.adx.pagamentoSimplificado.infra.exceptions.TransactionNotAuthorizedException;
 import com.adx.pagamentoSimplificado.repositories.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,11 +37,7 @@ public class TransactionService {
 
         userService.validateTransaction(payer, transaction.value());
 
-        boolean isAuthorized = this.authorizeTransaction(payer, transaction.value());
-
-        if(!isAuthorized){
-            throw new RuntimeException("Transação não autorizada!");
-        }
+        verifyAuthorization(payer, transaction.value());
 
         Transaction newTransaction = new Transaction();
         newTransaction.setAmount(transaction.value());
@@ -55,11 +52,20 @@ public class TransactionService {
         this.userService.saveUser(payer);
         this.userService.saveUser(payee);
 
-        this.notificationService.sendNotification(payer, "Transação enviada com sucesso");
-        this.notificationService.sendNotification(payee, "Transação recebida com sucesso");
+        sendNotification(payer, payee);
 
         return newTransaction;
 
+    }
+
+    public void verifyAuthorization(User payer, BigDecimal value){
+        if(!(authorizeTransaction(payer, value)))
+            throw new TransactionNotAuthorizedException("A transação não foi autorizada.");
+    }
+
+    public void sendNotification(User payer, User payee){
+        this.notificationService.sendNotification(payer, "Transação enviada com sucesso");
+        this.notificationService.sendNotification(payee, "Transação recebida com sucesso");
     }
 
     public boolean authorizeTransaction(User payer, BigDecimal value){
